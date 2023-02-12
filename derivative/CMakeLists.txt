@@ -4,4 +4,4 @@ project(derivative)
 set(CMAKE_CXX_STANDARD 11)
 
 add_executable(derivative
-        main.cpp)
+        main.cpp ../smallAllocator/main.cpp)
