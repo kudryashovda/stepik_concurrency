@@ -1,7 +1,6 @@
 #include <iostream>
 #include <map>
 
-
 class SmallAllocator
 {
 private:
@@ -73,6 +72,21 @@ public:
 			free_addrs_to_sizes_[next_free_addr] = next_free_blk_size;
 			free_memory_ += next_free_blk_size;
 		} else if (size > used_memory_bytes) {
+			// if next is free region
+			void *next_blk_addr =
+					static_cast<char *>(iter->first) + used_memory_bytes;
+			auto iter_to_next_blk = free_addrs_to_sizes_.find(next_blk_addr);
+			if (iter_to_next_blk != free_addrs_to_sizes_.end()) {
+				used_addrs_[iter->first] = size;
+				void *next_free_addr = static_cast<char *>(iter->first) + size;
+
+				free_addrs_to_sizes_.erase(iter_to_next_blk);
+				free_addrs_to_sizes_[next_free_addr] =
+						iter_to_next_blk->second - size;
+				free_memory_ += size - used_memory_bytes;
+				return iter->first;
+			}
+
 			auto *next_free_addr = Alloc(size);
 			if (!next_free_addr) {
 				std::cout << "Memory is highly fragmented, can't find a block"
@@ -82,9 +96,9 @@ public:
 			// copy data
 			for (int i = 0; i < used_memory_bytes; ++i) {
 				auto *writtable_next_free_addr =
-						static_cast<char *>(next_free_addr);
-				auto *readble_pointer = static_cast<char *>(iter->first);
-				*writtable_next_free_addr++ = *readble_pointer++;
+						static_cast<char *>(next_free_addr) + i;
+				auto *readble_pointer = static_cast<char *>(iter->first) + i;
+				*writtable_next_free_addr = *readble_pointer;
 			}
 
 			Free(iter->first);
@@ -121,41 +135,59 @@ int main()
 	A1.Free(A1_P1);
 
 
-		SmallAllocator A2;
-		int *A2_P1 = static_cast<int *>(A2.Alloc(10 * sizeof(int)));
-		for (unsigned int i = 0; i < 10; i++) {
-			A2_P1[i] = i;
+	SmallAllocator A2;
+	int *A2_P1 = static_cast<int *>(A2.Alloc(10 * sizeof(int)));
+	for (unsigned int i = 0; i < 10; i++) {
+		A2_P1[i] = i;
+	}
+	for (unsigned int i = 0; i < 10; i++) {
+		if (A2_P1[i] != i) {
+			std::cout << "ERROR 1" << std::endl;
 		}
-		for (unsigned int i = 0; i < 10; i++) {
-			if (A2_P1[i] != i) {
-				std::cout << "ERROR 1" << std::endl;
-			}
-		}
+	}
 
-		int *A2_P2 = static_cast<int *>(A2.Alloc(10 * sizeof(int)));
-		for (unsigned int i = 0; i < 10; i++) {
-			A2_P2[i] = -1;
+	int *A2_P2 = static_cast<int *>(A2.Alloc(10 * sizeof(int)));
+	for (unsigned int i = 0; i < 10; i++) {
+		A2_P2[i] = -1;
+	}
+	for (unsigned int i = 0; i < 10; i++) {
+		if (A2_P1[i] != i) {
+			std::cout << "ERROR 2" << std::endl;
 		}
-		for (unsigned int i = 0; i < 10; i++) {
-			if (A2_P1[i] != i) {
-				std::cout << "ERROR 2" << std::endl;
-			}
+	}
+	for (unsigned int i = 0; i < 10; i++) {
+		if (A2_P2[i] != -1) {
+			std::cout << "ERROR 3" << std::endl;
 		}
-		for (unsigned int i = 0; i < 10; i++) {
-			if (A2_P2[i] != -1) {
-				std::cout << "ERROR 3" << std::endl;
-			}
-		}
+	}
 
 
-		A2_P1 = (int *) A2.ReAlloc(A2_P1, 20 * sizeof(int));
-		for(unsigned int i = 10; i < 20; i++) A2_P1[i] = i;
-		for(unsigned int i = 0; i < 20; i++) if(A2_P1[i] != i) std::cout << "ERROR 4" << std::endl;
+	A2_P1 = static_cast<int *>(A2.ReAlloc(A2_P1, 20 * sizeof(int)));
+	for (unsigned int i = 10; i < 20; i++) {
+		A2_P1[i] = i;
+	}
+	for (unsigned int i = 0; i < 20; i++) {
+		if (A2_P1[i] != i) {
+			std::cout << "ERROR 4" << std::endl;
+		}
+	}
 
-//		for(unsigned int i = 0; i < 10; i++) if(A2_P2[i] != -1) std::cout << "ERROR 5" << std::endl;
-//		A2_P1 = (int *) A2.ReAlloc(A2_P1, 5 * sizeof(int));
-//		for(unsigned int i = 0; i < 5; i++) if(A2_P1[i] != i) std::cout << "ERROR 6" << std::endl;
-//		for(unsigned int i = 0; i < 10; i++) if(A2_P2[i] != -1) std::cout << "ERROR 7" << std::endl;
-//		A2.Free(A2_P1);
-//		A2.Free(A2_P2);
+	for (unsigned int i = 0; i < 10; i++) {
+		if (A2_P2[i] != -1) {
+			std::cout << "ERROR 5" << std::endl;
+		}
+	}
+	A2_P1 = static_cast<int *>(A2.ReAlloc(A2_P1, 5 * sizeof(int)));
+	for (unsigned int i = 0; i < 5; i++) {
+		if (A2_P1[i] != i) {
+			std::cout << "ERROR 6" << std::endl;
+		}
+	}
+	for (unsigned int i = 0; i < 10; i++) {
+		if (A2_P2[i] != -1) {
+			std::cout << "ERROR 7" << std::endl;
+		}
+	}
+	A2.Free(A2_P1);
+	A2.Free(A2_P2);
 }
