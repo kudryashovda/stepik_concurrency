@@ -3,7 +3,6 @@ project(derivative)
 
 set(CMAKE_CXX_STANDARD 11)
 
-#add_subdirectory(intro_exam)
 add_subdirectory(derivative)
 add_subdirectory(smartString)
 add_subdirectory(smallAllocator)
@@ -11,3 +10,4 @@ add_subdirectory(simpleTCPServer)
 add_subdirectory(practic_select_chat)
 add_subdirectory(practic_poll_chat)
 add_subdirectory(practic_epoll_chat)
+add_subdirectory(epollChat)
